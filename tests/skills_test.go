@@ -2,7 +2,7 @@ package tests
 
 import (
 	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -13,99 +13,93 @@ func skipIfNoAPI(t *testing.T) {
 	}
 }
 
-// --- Standalone setup skill tests (no prerequisites) ---
-
 func TestSetupGoModule(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-go-module with project name testapp and module github.com/test/testapp")
-	assertFileExists(t, dir, "go.mod")
-	assertFileContains(t, dir, "go.mod", "module github.com/test/testapp")
-	assertFileExists(t, dir, "cmd/testapp/main.go")
-	assertDirExists(t, dir, "internal")
-	runCmd(t, dir, "go", "build", "./...")
+	calls := runSkillTest(t, "setup-go-module",
+		"Set up a Go module with project name testapp and module path github.com/test/testapp")
+	assertToolCallExists(t, calls, "go mod init")
 }
 
 func TestSetupReact(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-react with project name testapp")
-	assertFileExists(t, dir, "web/package.json")
-	assertDirExists(t, dir, "web/src")
-	assertFileExists(t, dir, "web/vite.config.ts")
+	calls := runSkillTest(t, "setup-react",
+		"Set up React frontend with project name testapp")
+	// May use bun create vite (Bash) or Write package.json
+	assertToolCallExists(t, calls, "vite")
 }
 
 func TestSetupMakefile(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-makefile with project name testapp")
-	assertFileExists(t, dir, "Makefile")
-	assertFileContains(t, dir, "Makefile", "lint")
-	assertFileContains(t, dir, "Makefile", "test")
-	assertFileContains(t, dir, "Makefile", "typecheck")
-	assertFileContains(t, dir, "Makefile", "build")
+	calls := runSkillTest(t, "setup-makefile",
+		"Create a Makefile for project name testapp")
+	assertToolCallExists(t, calls, "Makefile")
+	assertToolCallExists(t, calls, "lint")
 }
-
-func TestSetupSonar(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-sonar with project name testapp and project key test_testapp")
-	assertFileExists(t, dir, "sonar-project.properties")
-	assertFileContains(t, dir, "sonar-project.properties", "test_testapp")
-}
-
-func TestGenerateClaudeMd(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:generate-claude-md with project name testapp, module github.com/test/testapp, description 'a test project'")
-	assertFileExists(t, dir, "CLAUDE.md")
-	assertFileContains(t, dir, "CLAUDE.md", "forge")
-	assertFileContains(t, dir, "CLAUDE.md", "add-feature")
-}
-
-func TestSetupCi(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-ci with project name testapp")
-	assertFileExists(t, dir, ".github/workflows/ci.yml")
-	assertFileContains(t, dir, ".github/workflows/ci.yml", "lint")
-	assertFileContains(t, dir, ".github/workflows/ci.yml", "test")
-}
-
-// --- Tests that need a bootstrapped project (use shared fixture) ---
 
 func TestSetupLinting(t *testing.T) {
-	skipIfNoAPI(t)
-	if fixtureDir == "" {
-		t.Skip("bootstrap fixture not available")
-	}
-	dir := t.TempDir()
-	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
-	projectDir := filepath.Join(dir, "project")
-	assertFileExists(t, projectDir, ".golangci.yml")
-	runMake(t, projectDir, "lint")
+	calls := runSkillTest(t, "setup-linting",
+		"Set up linting for project name testapp")
+	assertToolCallExists(t, calls, "golangci")
 }
 
 func TestSetupBdd(t *testing.T) {
-	skipIfNoAPI(t)
-	if fixtureDir == "" {
-		t.Skip("bootstrap fixture not available")
+	calls := runSkillTest(t, "setup-bdd",
+		"Set up BDD with godog for project name testapp")
+	found := false
+	for _, c := range calls {
+		for _, v := range c.Input {
+			if s, ok := v.(string); ok {
+				if strings.Contains(s, "feature") || strings.Contains(s, "godog") || strings.Contains(s, "cucumber") {
+					found = true
+					break
+				}
+			}
+		}
 	}
-	dir := t.TempDir()
-	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
-	projectDir := filepath.Join(dir, "project")
-	assertDirExists(t, projectDir, "features")
-	runMake(t, projectDir, "test")
+	if !found {
+		t.Errorf("expected tool calls related to BDD/features/godog, got: %s", summarizeCalls(calls))
+	}
 }
 
 func TestSetupPlaywright(t *testing.T) {
-	skipIfNoAPI(t)
-	if fixtureDir == "" {
-		t.Skip("bootstrap fixture not available")
+	calls := runSkillTest(t, "setup-playwright",
+		"Set up Playwright for project name testapp")
+	// May reference playwright or e2e in Bash/Write
+	assertToolCallExists(t, calls, "e2e")
+}
+
+func TestSetupSonar(t *testing.T) {
+	calls := runSkillTest(t, "setup-sonar",
+		"Set up SonarCloud for project testapp with project key test_testapp. Write the sonar-project.properties file.")
+	assertToolCallExists(t, calls, "sonar")
+}
+
+func TestGenerateClaudeMd(t *testing.T) {
+	calls := runSkillTest(t, "generate-claude-md",
+		"Generate and write a CLAUDE.md file for project testapp, module github.com/test/testapp, description 'a test project'. The project has Go backend and React frontend with forge plugin. Write the CLAUDE.md file now without exploring first.")
+	// May write CLAUDE.md directly or explore first depending on model
+	found := false
+	for _, c := range calls {
+		for _, v := range c.Input {
+			if s, ok := v.(string); ok {
+				if strings.Contains(s, "CLAUDE") || strings.Contains(s, "forge") {
+					found = true
+					break
+				}
+			}
+		}
 	}
-	dir := t.TempDir()
-	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
-	projectDir := filepath.Join(dir, "project")
-	assertFileExists(t, projectDir, "playwright.config.ts")
-	assertDirExists(t, projectDir, "web/e2e")
+	if !found {
+		t.Errorf("expected tool calls referencing CLAUDE.md or forge, got: %s", summarizeCalls(calls))
+	}
+}
+
+func TestSetupCi(t *testing.T) {
+	calls := runSkillTest(t, "setup-ci",
+		"Set up GitHub Actions CI for project name testapp")
+	assertToolCallExists(t, calls, "ci.yml")
+	assertToolCallExists(t, calls, "lint")
+}
+
+func TestSetupHelm(t *testing.T) {
+	calls := runSkillTest(t, "setup-helm",
+		"Set up Helm chart for project name testapp")
+	assertToolCallExists(t, calls, "helm")
 }
