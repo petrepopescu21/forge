@@ -12,7 +12,7 @@ import (
 // runClaude invokes the Claude Code CLI in print mode against the given directory.
 func runClaude(t *testing.T, dir string, prompt string) string {
 	t.Helper()
-	cmd := exec.Command("claude", "-p", "--allowedTools", "*", prompt)
+	cmd := exec.Command("claude", "--print", "--allowedTools", "*", "--", prompt)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {

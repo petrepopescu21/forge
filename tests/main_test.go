@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 		}
 		defer os.RemoveAll(dir)
 
-		cmd := exec.Command("claude", "-p", "--allowedTools", "*",
+		cmd := exec.Command("claude", "--print", "--allowedTools", "*", "--",
 			"use forge:bootstrap-project with name testapp, module github.com/test/testapp, description 'a test project', all layers yes")
 		cmd.Dir = dir
 		out, err := cmd.CombinedOutput()
