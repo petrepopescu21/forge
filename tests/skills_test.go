@@ -61,8 +61,7 @@ func TestSetupBdd(t *testing.T) {
 func TestSetupPlaywright(t *testing.T) {
 	calls := runSkillTest(t, "setup-playwright",
 		"Set up Playwright for project name testapp")
-	// May reference playwright or e2e in Bash/Write
-	assertToolCallExists(t, calls, "e2e")
+	assertToolCallExists(t, calls, "playwright")
 }
 
 func TestSetupSonar(t *testing.T) {
