@@ -2,23 +2,8 @@
 replicaCount: 3
 
 image:
-  repository: {{.Name}}.azurecr.io/{{.Name}}
+  repository: {{.Name}}.azurecr.io/{{.Name}}-backend
   tag: "latest"
-
-ingress:
-  enabled: true
-  className: "nginx"
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: {{.Name}}.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: {{.Name}}-tls
-      hosts:
-        - {{.Name}}.example.com
 
 resources:
   limits:
@@ -50,3 +35,36 @@ affinity:
                 values:
                   - {{.Name}}
           topologyKey: kubernetes.io/hostname
+
+# ── Web frontend (production) ────────────────────────────────────────────────
+
+web:
+  replicaCount: 3
+
+  image:
+    repository: {{.Name}}.azurecr.io/{{.Name}}-web
+    tag: "latest"
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+
+# ── Istio (production) ───────────────────────────────────────────────────────
+
+istio:
+  enabled: true
+  hosts:
+    - {{.Name}}.example.com
+  tls:
+    enabled: true
+    credentialName: {{.Name}}-tls

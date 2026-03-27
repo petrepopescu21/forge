@@ -30,7 +30,7 @@ func TestRun_CommonLayer(t *testing.T) {
 		t.Fatalf("Run() error: %v", err)
 	}
 
-	for _, f := range []string{".gitignore", "Dockerfile", "README.md"} {
+	for _, f := range []string{".gitignore", "Dockerfile.backend", "Dockerfile.web", "README.md"} {
 		path := filepath.Join(dir, f)
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			t.Errorf("expected %s to exist", f)
@@ -49,13 +49,22 @@ func TestRun_CommonLayer(t *testing.T) {
 		t.Error("README.md should contain project description")
 	}
 
-	// Verify Dockerfile has project name
-	data, err = os.ReadFile(filepath.Join(dir, "Dockerfile"))
+	// Verify Dockerfile.backend has project name
+	data, err = os.ReadFile(filepath.Join(dir, "Dockerfile.backend"))
 	if err != nil {
-		t.Fatalf("reading Dockerfile: %v", err)
+		t.Fatalf("reading Dockerfile.backend: %v", err)
 	}
 	if !strings.Contains(string(data), "./cmd/testapp") {
-		t.Error("Dockerfile should reference cmd/testapp")
+		t.Error("Dockerfile.backend should reference cmd/testapp")
+	}
+
+	// Verify Dockerfile.web exists with nginx stage
+	data, err = os.ReadFile(filepath.Join(dir, "Dockerfile.web"))
+	if err != nil {
+		t.Fatalf("reading Dockerfile.web: %v", err)
+	}
+	if !strings.Contains(string(data), "nginx") {
+		t.Error("Dockerfile.web should use nginx")
 	}
 }
 
@@ -243,7 +252,8 @@ func TestRun_SelectiveLayers(t *testing.T) {
 	// Should exist (common + selected layers)
 	shouldExist := []string{
 		".gitignore",
-		"Dockerfile",
+		"Dockerfile.backend",
+		"Dockerfile.web",
 		"cmd/testapp/main.go",
 		"Makefile",
 	}
@@ -396,7 +406,11 @@ func TestRun_HelmTemplatesRawCopy(t *testing.T) {
 	// Verify Helm template files exist and contain raw {{ }} syntax
 	helmTemplates := []string{
 		"deploy/helm/testapp/templates/deployment.yaml",
+		"deploy/helm/testapp/templates/deployment-web.yaml",
 		"deploy/helm/testapp/templates/service.yaml",
+		"deploy/helm/testapp/templates/service-web.yaml",
+		"deploy/helm/testapp/templates/gateway.yaml",
+		"deploy/helm/testapp/templates/virtualservice.yaml",
 		"deploy/helm/testapp/templates/serviceaccount.yaml",
 		"deploy/helm/testapp/templates/_helpers.tpl",
 		"deploy/helm/testapp/templates/NOTES.txt",

@@ -1,0 +1,31 @@
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "chart.fullname" . }}
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+spec:
+  hosts:
+    {{- range .Values.istio.hosts }}
+    - {{ . | quote }}
+    {{- end }}
+  gateways:
+    - {{ include "chart.fullname" . }}-gateway
+  http:
+    # Route API traffic to the backend service
+    - match:
+        - uri:
+            prefix: /api
+      route:
+        - destination:
+            host: {{ include "chart.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}
+    # Route all other traffic to the web frontend
+    - route:
+        - destination:
+            host: {{ include "chart.fullname" . }}-web
+            port:
+              number: {{ .Values.web.service.port }}
+{{- end }}
