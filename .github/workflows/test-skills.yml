@@ -102,7 +102,7 @@ jobs:
         id: tests
         if: steps.affected.outputs.skip != 'true'
         env:
-          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           FORGE_TEST_GITHUB_TOKEN: ${{ secrets.FORGE_TEST_GITHUB_TOKEN }}
         run: |
           set -o pipefail
