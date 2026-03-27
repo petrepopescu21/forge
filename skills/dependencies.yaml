@@ -1,29 +1,18 @@
 # Skill dependency graph — source of truth.
-# Update this file when adding/removing forge:<name> references in skill.md files.
-# CI validates consistency on every PR.
+# The setup-* skills have been replaced by the forge CLI (cmd/forge/).
+# Only AI-powered workflow skills remain.
 
 skills:
   # Orchestrators
   bootstrap-project:
     type: orchestrator
-    depends:
-      - setup-go-module
-      - setup-react
-      - setup-makefile
-      - setup-linting
-      - setup-bdd
-      - setup-playwright
-      - setup-ci
-      - setup-sonar
-      - setup-helm
-      - generate-claude-md
+    depends: []
 
   add-feature:
     type: orchestrator
     depends:
       - bdd-feature
       - tdd-cycle
-      - quality-check
 
   # Workflow skills
   bdd-feature:
@@ -31,39 +20,4 @@ skills:
     depends: []
   tdd-cycle:
     type: workflow
-    depends: []
-  quality-check:
-    type: workflow
-    depends: []
-
-  # Setup skills
-  setup-go-module:
-    type: setup
-    depends: []
-  setup-react:
-    type: setup
-    depends: []
-  setup-makefile:
-    type: setup
-    depends: []
-  setup-linting:
-    type: setup
-    depends: []
-  setup-bdd:
-    type: setup
-    depends: []
-  setup-playwright:
-    type: setup
-    depends: []
-  setup-ci:
-    type: setup
-    depends: []
-  setup-sonar:
-    type: setup
-    depends: []
-  setup-helm:
-    type: setup
-    depends: []
-  generate-claude-md:
-    type: setup
     depends: []
