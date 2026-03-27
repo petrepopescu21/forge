@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "petrepopescu21-forge",
+  "description": "Opinionated development workflows for Go + React/TypeScript projects — BDD, TDD, CI/CD, quality gates",
+  "owner": {
+    "name": "petrepopescu21"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "description": "Opinionated development workflows for Go + React/TypeScript projects — BDD, TDD, CI/CD, quality gates",
+      "category": "development",
+      "source": "./",
+      "homepage": "https://github.com/petrepopescu21/forge"
+    }
+  ]
+}
