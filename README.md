@@ -1,56 +1,45 @@
 # Forge
 
-A Claude Code superpowers plugin for bootstrapping and developing Go + React/TypeScript projects with BDD and TDD.
+A Claude Code plugin for bootstrapping and developing Go + React/TypeScript projects with BDD and TDD discipline.
 
 ## Installation
 
-Add to your Claude Code settings:
+Install from the Claude Code marketplace:
 
-```json
-{
-  "plugins": ["github:petrepopescu21/forge"]
-}
+```bash
+claude install petrepopescu21/forge
 ```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/bootstrap` | Scaffold a complete project — collects inputs, runs the forge CLI, installs deps, verifies quality gates |
+| `/feature` | Full feature cycle: prompt → BDD scenarios → TDD implementation → quality verification |
 
 ## Skills
 
-### Orchestrators
-
-| Skill | Description |
-|-------|-------------|
-| forge:bootstrap-project | Scaffold a complete project from scratch |
-| forge:add-feature | Full feature cycle: prompt → BDD → TDD → quality check |
-
-### Workflow
-
-| Skill | Description |
-|-------|-------------|
-| forge:bdd-feature | Transform a prompt into Gherkin scenarios with step stubs |
-| forge:tdd-cycle | Red/green/refactor with discipline enforcement |
-| forge:quality-check | Pre-commit gate: lint, typecheck, test |
-
-### Setup
-
-| Skill | Description |
-|-------|-------------|
-| forge:setup-go-module | Go module + cmd/ + internal/ scaffold |
-| forge:setup-react | Vite + React + TypeScript + Vitest |
-| forge:setup-makefile | Makefile with standard targets |
-| forge:setup-linting | golangci-lint + ESLint configs |
-| forge:setup-bdd | godog + playwright-bdd infrastructure |
-| forge:setup-playwright | Dual Playwright configs with fixtures |
-| forge:setup-ci | Consolidated GitHub Actions workflows |
-| forge:setup-sonar | SonarCloud with dual coverage |
-| forge:setup-helm | Helm chart + Kind + dev scripts |
-| forge:generate-claude-md | CLAUDE.md with skill enforcement |
+| Skill | Type | Purpose |
+|-------|------|---------|
+| `forge:bootstrap-project` | orchestrator | Gathers inputs, runs forge CLI to scaffold projects in ~50ms |
+| `forge:add-feature` | orchestrator | BDD → TDD → quality gates |
+| `forge:bdd-feature` | workflow | Turns prompts into Gherkin scenarios with step stubs |
+| `forge:tdd-cycle` | workflow | Red/green/refactor discipline |
 
 ## How It Works
 
-1. Bootstrap: forge:bootstrap-project scaffolds and generates CLAUDE.md
-2. Develop: forge:add-feature drives BDD → TDD → quality
-3. Verify: forge:quality-check before every commit
+Forge has two parts:
 
-The generated CLAUDE.md ensures all future Claude Code sessions automatically use these skills.
+1. **CLI scaffold generator** (`cmd/forge/`) — a deterministic Go binary that generates project files from embedded templates across 11 layers (go-module, react, makefile, linting, bdd, playwright, ci, sonar, helm, claude-md, and common)
+2. **AI workflow skills** — 4 skills that drive BDD/TDD feature development
+
+### Workflow
+
+1. **Bootstrap:** `/bootstrap` scaffolds a complete project with all layers
+2. **Develop:** `/feature` drives BDD → TDD → quality for each feature
+3. **Verify:** Quality gates (`make lint && make typecheck && make test`) run automatically
+
+The generated `CLAUDE.md` ensures all future Claude Code sessions automatically use these skills.
 
 ## Stack
 

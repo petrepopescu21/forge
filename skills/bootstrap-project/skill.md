@@ -1,6 +1,8 @@
 ---
 name: bootstrap-project
 description: Scaffold a complete Go + React/TypeScript project. Gathers project info interactively, then runs the forge CLI to generate all files deterministically. Trigger on "new project", "bootstrap project", "scaffold project", "create project", or "init project".
+user_invocable: true
+command: bootstrap
 ---
 
 # Bootstrap Project

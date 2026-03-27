@@ -1,6 +1,8 @@
 ---
 name: add-feature
 description: Orchestrate the full feature development cycle — from rough prompt through BDD scenarios, TDD implementation, to quality verification. Use when adding any new feature, capability, or behavior. This is the primary development workflow enforced by CLAUDE.md. Trigger on any feature request, behavior description, or when the user says "add", "implement", "build", "create" followed by a feature description. Even for "simple" features, use this workflow.
+user_invocable: true
+command: feature
 ---
 
 # Add Feature
