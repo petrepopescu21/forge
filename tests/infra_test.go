@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -10,29 +11,30 @@ func TestSetupHelm(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping infrastructure test in short mode")
 	}
+	if fixtureDir == "" {
+		t.Skip("bootstrap fixture not available")
+	}
 
 	dir := t.TempDir()
-
-	runClaude(t, dir, "use forge:setup-go-module with project name testapp and module github.com/test/testapp")
-	runClaude(t, dir, "use forge:setup-makefile with project name testapp")
-	runClaude(t, dir, "use forge:setup-helm with project name testapp")
+	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
+	projectDir := filepath.Join(dir, "project")
 
 	// L2: file structure
-	assertFileExists(t, dir, "deploy/helm/testapp/Chart.yaml")
-	assertFileContains(t, dir, "deploy/helm/testapp/Chart.yaml", "name: testapp")
-	runCmd(t, dir, "helm", "lint", "deploy/helm/testapp")
+	assertFileExists(t, projectDir, "deploy/helm/testapp/Chart.yaml")
+	assertFileContains(t, projectDir, "deploy/helm/testapp/Chart.yaml", "testapp")
+	runCmd(t, projectDir, "helm", "lint", "deploy/helm/testapp")
 
 	// L3: Kind cluster + Helm deploy
-	runMake(t, dir, "cluster-create")
+	runMake(t, projectDir, "cluster-create")
 	t.Cleanup(func() {
-		runCmd(t, dir, "make", "cluster-delete")
+		runCmd(t, projectDir, "make", "cluster-delete")
 	})
 
-	runMake(t, dir, "build")
-	runCmd(t, dir, "docker", "build", "-t", "testapp:latest", ".")
-	runCmd(t, dir, "kind", "load", "docker-image", "testapp:latest", "--name", "testapp")
+	runMake(t, projectDir, "build")
+	runCmd(t, projectDir, "docker", "build", "-t", "testapp:latest", ".")
+	runCmd(t, projectDir, "kind", "load", "docker-image", "testapp:latest", "--name", "testapp")
 
-	runCmd(t, dir, "helm", "install", "testapp", "deploy/helm/testapp",
+	runCmd(t, projectDir, "helm", "install", "testapp", "deploy/helm/testapp",
 		"--set", "image.repository=testapp",
 		"--set", "image.tag=latest",
 		"--set", "image.pullPolicy=Never",

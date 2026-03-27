@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -21,35 +22,37 @@ func TestSetupCiValidation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping CI validation test in short mode")
 	}
+	if fixtureDir == "" {
+		t.Skip("bootstrap fixture not available")
+	}
 
 	dir := t.TempDir()
+	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
+	projectDir := filepath.Join(dir, "project")
 
-	// Use bootstrap-project to get a complete project with CI in one session
-	runClaudeWithModel(t, dir, "use forge:bootstrap-project with name testapp, module github.com/test/testapp, description 'a test project', all layers yes", "claude-sonnet-4-6")
-
-	assertFileExists(t, dir, ".github/workflows/ci.yml")
-	assertFileContains(t, dir, ".github/workflows/ci.yml", "lint")
-	assertFileContains(t, dir, ".github/workflows/ci.yml", "test")
+	assertFileExists(t, projectDir, ".github/workflows/ci.yml")
+	assertFileContains(t, projectDir, ".github/workflows/ci.yml", "lint")
+	assertFileContains(t, projectDir, ".github/workflows/ci.yml", "test")
 
 	repoName := fmt.Sprintf("forge-test-%d", os.Getpid())
 	ghToken := os.Getenv("FORGE_TEST_GITHUB_TOKEN")
 
-	runCmd(t, dir, "gh", "repo", "create", repoName, "--private", "--confirm")
+	runCmd(t, projectDir, "gh", "repo", "create", repoName, "--private", "--confirm")
 	t.Cleanup(func() {
 		exec.Command("gh", "repo", "delete", repoName, "--yes").Run()
 	})
 
-	runCmd(t, dir, "git", "init")
-	runCmd(t, dir, "git", "config", "user.name", "forge-test")
-	runCmd(t, dir, "git", "config", "user.email", "forge-test@test.local")
-	runCmd(t, dir, "git", "add", ".")
-	runCmd(t, dir, "git", "commit", "-m", "initial: test scaffold")
+	runCmd(t, projectDir, "git", "init")
+	runCmd(t, projectDir, "git", "config", "user.name", "forge-test")
+	runCmd(t, projectDir, "git", "config", "user.email", "forge-test@test.local")
+	runCmd(t, projectDir, "git", "add", ".")
+	runCmd(t, projectDir, "git", "commit", "-m", "initial: test scaffold")
 
-	owner := strings.TrimSpace(runCmd(t, dir, "gh", "api", "user", "--jq", ".login"))
+	owner := strings.TrimSpace(runCmd(t, projectDir, "gh", "api", "user", "--jq", ".login"))
 	remote := fmt.Sprintf("https://x-access-token:%s@github.com/%s/%s.git",
 		ghToken, owner, repoName)
-	runCmd(t, dir, "git", "remote", "add", "origin", remote)
-	runCmd(t, dir, "git", "push", "-u", "origin", "main")
+	runCmd(t, projectDir, "git", "remote", "add", "origin", remote)
+	runCmd(t, projectDir, "git", "push", "-u", "origin", "main")
 
 	fullRepo := fmt.Sprintf("%s/%s", owner, repoName)
 	success := waitForWorkflowGreen(t, fullRepo, 15)

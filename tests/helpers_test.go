@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -12,14 +13,16 @@ import (
 // runClaude invokes the Claude Code CLI in print mode against the given directory.
 // forgePluginDir returns the absolute path to the forge repo root.
 // This is needed so Claude can find forge skills when running in temp dirs.
+// Uses runtime.Caller to resolve based on source file location, which
+// works regardless of the working directory.
 func forgePluginDir(t *testing.T) string {
 	t.Helper()
-	// tests/ is one level below repo root
-	abs, err := filepath.Abs(filepath.Join("..", "."))
-	if err != nil {
-		t.Fatalf("failed to resolve forge plugin dir: %v", err)
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("failed to get source file path via runtime.Caller")
 	}
-	return abs
+	// thisFile is .../forge/tests/helpers_test.go → parent is tests/ → parent is forge/
+	return filepath.Dir(filepath.Dir(thisFile))
 }
 
 func runClaude(t *testing.T, dir string, prompt string) string {
