@@ -17,8 +17,6 @@ jobs:
   build-and-push:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    outputs:
-      image-tag: ${{ "{{" }} steps.meta.outputs.tags {{ "}}" }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,20 +31,25 @@ jobs:
             --tenant ${{ "{{" }} secrets.ACR_TENANT_ID {{ "}}" }}
           az acr login --name ${{ "{{" }} secrets.ACR_NAME {{ "}}" }}
 
-      - name: Generate image tag
-        id: meta
-        run: |
-          TAG="${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}:${{ "{{" }} github.sha {{ "}}" }}"
-          echo "tags=${TAG}" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image
+      - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile.backend
           push: true
-          tags: ${{ "{{" }} steps.meta.outputs.tags {{ "}}" }}
-          cache-from: type=registry,ref=${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}:buildcache
-          cache-to: type=registry,ref=${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}:buildcache,mode=max
+          tags: ${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}-backend:${{ "{{" }} github.sha {{ "}}" }}
+          cache-from: type=registry,ref=${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}-backend:buildcache
+          cache-to: type=registry,ref=${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}-backend:buildcache,mode=max
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.web
+          push: true
+          tags: ${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}-web:${{ "{{" }} github.sha {{ "}}" }}
+          cache-from: type=registry,ref=${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}-web:buildcache
+          cache-to: type=registry,ref=${{ "{{" }} secrets.ACR_NAME {{ "}}" }}.azurecr.io/{{.Name}}-web:buildcache,mode=max
 
   deploy:
     needs: build-and-push
@@ -76,12 +79,13 @@ jobs:
             --install {{.Name}} deploy/helm/{{.Name}} \
             --namespace {{.Name}} \
             --create-namespace \
-            --values deploy/helm/{{.Name}}/values.yaml \
-            --set image.tag=${{ "{{" }} github.sha {{ "}}" }}
+            --values deploy/helm/{{.Name}}/values-aks.yaml \
+            --set image.tag=${{ "{{" }} github.sha {{ "}}" }} \
+            --set web.image.tag=${{ "{{" }} github.sha {{ "}}" }}
 
       - name: Verify rollout
         run: |
-          kubectl rollout status deployment/{{.Name}}-api \
+          kubectl rollout status deployment/{{.Name}} \
             --namespace {{.Name}} \
             --timeout=5m
           kubectl rollout status deployment/{{.Name}}-web \

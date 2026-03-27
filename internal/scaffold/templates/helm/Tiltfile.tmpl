@@ -1,15 +1,24 @@
 # Tiltfile — local development with Kind
 # Run: tilt up (interactive) or tilt ci (headless/CI)
 
-# Build the Go + React app
+# Build the Go backend
 docker_build(
-    '{{.Name}}',
+    '{{.Name}}-backend',
     '.',
-    dockerfile='Dockerfile',
+    dockerfile='Dockerfile.backend',
     live_update=[
         sync('./cmd', '/app/cmd'),
         sync('./internal', '/app/internal'),
-        sync('./web/src', '/app/web/src'),
+    ],
+)
+
+# Build the web frontend
+docker_build(
+    '{{.Name}}-web',
+    '.',
+    dockerfile='Dockerfile.web',
+    live_update=[
+        sync('./web/src', '/web/src'),
     ],
 )
 
@@ -19,10 +28,15 @@ k8s_yaml(helm(
     name='{{.Name}}',
     values=['deploy/helm/{{.Name}}/values.yaml'],
     set=[
-        'image.repository={{.Name}}',
+        'image.repository={{.Name}}-backend',
         'image.tag=latest',
+        'web.image.repository={{.Name}}-web',
+        'web.image.tag=latest',
     ],
 ))
 
-# Port-forward the app
+# Port-forward the backend API
 k8s_resource('{{.Name}}', port_forwards='8080:8080')
+
+# Port-forward the web frontend
+k8s_resource('{{.Name}}-web', port_forwards='3000:8080')
