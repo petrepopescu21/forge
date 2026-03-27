@@ -16,7 +16,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices.chromiumLinux },
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
 });
