@@ -79,22 +79,17 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Lint Go
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-
       - name: Set up Bun
         uses: oven-sh/setup-bun@v1
 
       - name: Install frontend dependencies
         run: cd web && bun install --frozen-lockfile
 
-      - name: Lint frontend
-        run: cd web && bun run lint
+      - name: Lint (Go + frontend)
+        run: make lint
 
       - name: Lint Helm charts
-        run: helm lint deploy/helm/pebblr
+        run: make helm-lint
 
   test:
     runs-on: ubuntu-latest
@@ -143,24 +138,9 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v1
 
-      - name: Install Kind v0.27.0
-        run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
-
-      - name: Install Tilt
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
-
-      - name: Install cloud-provider-kind
-        run: go install sigs.k8s.io/cloud-provider-kind@latest
-
       - name: Create Kind cluster
         run: make e2e-cluster
 
-      - name: Start cloud-provider-kind
-        run: nohup cloud-provider-kind > /dev/null 2>&1 &
 
       - name: Setup test database
         run: make e2e-db
