@@ -24,8 +24,8 @@ graph TD
     C2 --> C3{"All Steps Done?"}
     C3 -->|More steps| C1
     C3 -->|Proceed| D["Phase 3: Quality"]
-    D --> D1["forge:quality-check"]
-    D1 --> D2["Run All Gates"]
+    D --> D1["make lint && make typecheck && make test"]
+    D1 --> D2["All Gates Pass?"]
     D2 --> D3{"All Pass?"}
     D3 -->|Fix issues| D1
     D3 -->|Proceed| E["Phase 4: Summary"]
@@ -66,8 +66,7 @@ graph TD
 
 **Goal:** Ensure code meets all quality standards.
 
-- Invoke `forge:quality-check`
-- Run all gates:
+- Run all quality gates directly:
   - `make test` (unit + integration tests)
   - `make lint` (style + best practices)
   - `make typecheck` (TypeScript strict mode)
