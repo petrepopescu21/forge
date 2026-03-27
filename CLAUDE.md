@@ -17,12 +17,19 @@ A Claude Code plugin with two parts:
 - `tests/` — structural lint tests for skills
 - `.github/workflows/` — CI (structural lint + scaffold tests)
 
+## Commands
+
+| Command | Skill | Description |
+|---------|-------|-------------|
+| `/bootstrap` | `bootstrap-project` | Scaffold a complete project interactively |
+| `/feature` | `add-feature` | Full feature cycle: BDD → TDD → quality gates |
+
 ## Skills
 
 | Skill | Type | Purpose |
 |-------|------|---------|
-| `bootstrap-project` | orchestrator | Gathers inputs, runs forge CLI |
-| `add-feature` | orchestrator | BDD → TDD → quality gates |
+| `bootstrap-project` | orchestrator | Gathers inputs, runs forge CLI (user-invocable as `/bootstrap`) |
+| `add-feature` | orchestrator | BDD → TDD → quality gates (user-invocable as `/feature`) |
 | `bdd-feature` | workflow | Turns prompts into Gherkin scenarios |
 | `tdd-cycle` | workflow | Red/green/refactor discipline |
 
