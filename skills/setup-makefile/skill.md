@@ -95,7 +95,7 @@ cluster-up: ## Recreate local Kind cluster with all dependencies
 	$(AKS_GUARD)
 	@kind delete cluster --name $(CLUSTER) 2>/dev/null || true
 	@kind create cluster --name $(CLUSTER) --config $(KIND_CFG)
-	@cloud-provider-kind &
+	@nohup sudo cloud-provider-kind > /dev/null 2>&1 &
 	@$(MAKE) cluster-deps
 
 cluster-deps: ## Install cert-manager, ESO, and other cluster dependencies (idempotent)

@@ -153,8 +153,14 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
+      - name: Install cloud-provider-kind
+        run: go install sigs.k8s.io/cloud-provider-kind@latest
+
       - name: Create Kind cluster
         run: make e2e-cluster
+
+      - name: Start cloud-provider-kind
+        run: nohup cloud-provider-kind > /dev/null 2>&1 &
 
       - name: Setup test database
         run: make e2e-db
