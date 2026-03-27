@@ -10,7 +10,7 @@ import (
 var fixtureDir string
 
 func TestMain(m *testing.M) {
-	if os.Getenv("ANTHROPIC_API_KEY") != "" {
+	if os.Getenv("ANTHROPIC_API_KEY") != "" || os.Getenv("ANTHROPIC_AUTH_TOKEN") != "" {
 		dir, err := os.MkdirTemp("", "forge-fixture-*")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to create fixture dir: %v\n", err)

@@ -7,8 +7,8 @@ import (
 
 func skipIfNoAPI(t *testing.T) {
 	t.Helper()
-	if os.Getenv("ANTHROPIC_API_KEY") == "" {
-		t.Skip("ANTHROPIC_API_KEY not set, skipping behavioral test")
+	if os.Getenv("ANTHROPIC_API_KEY") == "" && os.Getenv("ANTHROPIC_AUTH_TOKEN") == "" {
+		t.Skip("neither ANTHROPIC_API_KEY nor ANTHROPIC_AUTH_TOKEN set, skipping behavioral test")
 	}
 }
 

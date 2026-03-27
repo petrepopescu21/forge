@@ -42,5 +42,5 @@ Every skill must have a `skill.md` with YAML frontmatter containing at minimum:
 
 - Structural tests run on every PR automatically
 - Behavioral tests run via `/test-skills` PR comment (authorized users only)
-- Behavioral tests require `ANTHROPIC_API_KEY` environment variable
+- Behavioral tests require `ANTHROPIC_AUTH_TOKEN` (subscription) or `ANTHROPIC_API_KEY` (API)
 - Level 4 tests (CI self-validation) require `FORGE_TEST_GITHUB_TOKEN`
