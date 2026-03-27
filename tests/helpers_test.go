@@ -41,11 +41,22 @@ func runClaudeWithModel(t *testing.T, dir string, prompt string, modelOverride s
 	}
 	cmd := exec.Command("claude", "--print", "--dangerously-skip-permissions", "--model", model, "--plugin-dir", pluginDir, "--", prompt)
 	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
+
+	// Stream stdout/stderr to test output in real time
+	var buf strings.Builder
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+
+	t.Logf("running: claude --print --model %s --plugin-dir %s -- %q (cwd: %s)", model, pluginDir, prompt, dir)
+
+	err := cmd.Run()
+	output := buf.String()
+	t.Logf("claude output (%d bytes):\n%s", len(output), output)
+
 	if err != nil {
-		t.Fatalf("claude command failed: %v\nOutput:\n%s", err, string(out))
+		t.Fatalf("claude command failed: %v\nOutput:\n%s", err, output)
 	}
-	return string(out)
+	return output
 }
 
 // assertFileExists fails the test if the file does not exist relative to dir.
