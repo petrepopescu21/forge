@@ -352,46 +352,44 @@ EOF
 esac
 ```
 
-#### Script 2: `scripts/deploy-local.sh`
+#### Tiltfile
 
-Deploys the application to the local Kind cluster using Skaffold.
+Instead of a deploy script, create a `Tiltfile` at the project root. Tilt watches for changes and automatically rebuilds/redeploys.
 
-```bash
-#!/bin/bash
+```python
+# Tiltfile — local development with Kind
+# Run: tilt up (interactive) or tilt ci (headless/CI)
 
-set -euo pipefail
+# Build the Go + React app
+docker_build(
+    '<project-name>',
+    '.',
+    dockerfile='Dockerfile',
+    live_update=[
+        sync('./cmd', '/app/cmd'),
+        sync('./internal', '/app/internal'),
+        sync('./web/src', '/app/web/src'),
+    ],
+)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# Deploy via Helm chart
+k8s_yaml(helm(
+    'deploy/helm/<project-name>',
+    name='<project-name>',
+    values=['deploy/helm/<project-name>/values.yaml'],
+    set=[
+        'image.repository=<project-name>',
+        'image.tag=latest',
+    ],
+))
 
-echo "Local Deployment Script"
-echo "======================"
-
-# Source development environment if it exists
-if [ -f "${PROJECT_ROOT}/web/.env.development" ]; then
-  echo "Sourcing web/.env.development..."
-  set -a
-  source "${PROJECT_ROOT}/web/.env.development"
-  set +a
-fi
-
-# Check if skaffold is installed
-if ! command -v skaffold &> /dev/null; then
-  echo "Error: skaffold is not installed."
-  echo "Install it from https://skaffold.dev/docs/install/"
-  exit 1
-fi
-
-echo "Running Skaffold..."
-cd "${PROJECT_ROOT}"
-
-# Run skaffold with no default repo (assumes images are available locally or in registry)
-skaffold run --no-default-repo
-
-echo "Deployment complete!"
+# Port-forward the app
+k8s_resource('<project-name>', port_forwards='8080:8080')
 ```
 
-#### Script 3: `scripts/cluster-deps.sh`
+Replace `<project-name>` with the actual project name.
+
+#### Script 2: `scripts/cluster-deps.sh`
 
 Installs cluster dependencies (cert-manager, external-secrets) via Helm. Idempotent.
 
@@ -462,7 +460,6 @@ Make all scripts executable:
 
 ```bash
 chmod +x scripts/cluster-db.sh
-chmod +x scripts/deploy-local.sh
 chmod +x scripts/cluster-deps.sh
 ```
 
@@ -481,8 +478,9 @@ Commit all new files to git:
 ```bash
 git add deploy/helm/<project-name>/
 git add deploy/kind/kind-config.yaml
-git add scripts/cluster-db.sh scripts/deploy-local.sh scripts/cluster-deps.sh
-git commit -m "Setup Helm chart, Kind config, and local dev scripts"
+git add Tiltfile
+git add scripts/cluster-db.sh scripts/cluster-deps.sh
+git commit -m "feat: scaffold Helm chart, Kind config, Tiltfile, and local dev scripts"
 ```
 
 ## Summary
@@ -498,9 +496,21 @@ The setup-helm skill creates:
    - Single control-plane node
    - Port mappings for local ingress (30080 → 80, 30443 → 443)
 
-3. **Local Dev Scripts** (`scripts/`):
+3. **Tiltfile** at project root:
+   - Builds Docker image with live_update for fast iteration
+   - Deploys via Helm chart values
+   - Port-forwards the app to localhost:8080
+   - Use `tilt up` for interactive dev, `tilt ci` for headless/CI
+
+4. **Local Dev Scripts** (`scripts/`):
    - **cluster-db.sh**: PostgreSQL namespace management (up/stop/reset), creates secrets
-   - **deploy-local.sh**: Skaffold-based deployment with environment sourcing
    - **cluster-deps.sh**: Idempotent Helm-based dependency installation (cert-manager, external-secrets)
+
+## Prerequisites
+
+- **Tilt** — install from https://docs.tilt.dev/install.html
+- **Kind** — local Kubernetes clusters
+- **cloud-provider-kind** — enables LoadBalancer services in Kind. Install: `go install sigs.k8s.io/cloud-provider-kind@latest`. Started automatically by `make cluster-up`.
+- **Helm** — chart packaging and deployment
 
 All scripts follow bash best practices (set -euo pipefail) and are fully functional, production-ready templates.

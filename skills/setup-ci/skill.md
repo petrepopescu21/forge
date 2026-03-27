@@ -23,7 +23,7 @@ Four parallel jobs:
 
 1. **lint** — Go, frontend, and Helm linting
 2. **test** — Unit tests with coverage (Go + TypeScript)
-3. **e2e** — Kind cluster, Skaffold, end-to-end tests
+3. **e2e** — Kind cluster, Tilt CI, end-to-end tests
 4. **sonar** — SonarCloud analysis (depends on test)
 
 ### 2. deploy.yml — Build and Deploy
@@ -149,11 +149,9 @@ jobs:
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
 
-      - name: Install Skaffold
+      - name: Install Tilt
         run: |
-          curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64
-          chmod +x skaffold
-          sudo mv skaffold /usr/local/bin/
+          curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
       - name: Create Kind cluster
         run: make e2e-cluster

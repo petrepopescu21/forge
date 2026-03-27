@@ -87,23 +87,24 @@ e2e-db: ## Deploy PostgreSQL, run migrations, seed data for E2E namespace
 	$(AKS_GUARD)
 	@scripts/cluster-db.sh <project-name>-e2e
 
-e2e-deploy: ## Build and deploy to E2E namespace via Skaffold
+e2e-deploy: ## Build, load images, and deploy to E2E namespace via Tilt CI
 	$(AKS_GUARD)
-	@skaffold run -p e2e --default-repo="" --status-check=true
+	@tilt ci -- --namespace <project-name>-e2e
 
 cluster-up: ## Recreate local Kind cluster with all dependencies
 	$(AKS_GUARD)
 	@kind delete cluster --name $(CLUSTER) 2>/dev/null || true
 	@kind create cluster --name $(CLUSTER) --config $(KIND_CFG)
+	@cloud-provider-kind &
 	@$(MAKE) cluster-deps
 
 cluster-deps: ## Install cert-manager, ESO, and other cluster dependencies (idempotent)
 	$(AKS_GUARD)
 	@scripts/cluster-deps.sh
 
-deploy: ## Build and deploy to local Kind cluster via Skaffold
+deploy: ## Start Tilt for local development (interactive mode)
 	$(AKS_GUARD)
-	@scripts/deploy-local.sh
+	@tilt up
 
 migrate: ## Run database migrations
 	$(AKS_GUARD)
@@ -125,7 +126,7 @@ clean: ## Clean build artifacts
 mkdir -p scripts
 ```
 
-The scripts referenced by Makefile targets (`cluster-db.sh`, `deploy-local.sh`, `cluster-deps.sh`, `e2e-web.sh`) are created by the `setup-helm` and `setup-playwright` skills. This skill does not create them — it only references them. If invoked standalone without those skills, create stub scripts that explain what's needed:
+The scripts referenced by Makefile targets (`cluster-db.sh`, `cluster-deps.sh`, `e2e-web.sh`) are created by the `setup-helm` and `setup-playwright` skills. This skill does not create them — it only references them. If invoked standalone without those skills, create stub scripts that explain what's needed:
 
 ```bash
 #!/usr/bin/env bash
@@ -151,6 +152,7 @@ git commit -m "feat: add Makefile with standard build, test, lint, and infrastru
 ## Key Design Points
 
 - **AKS safety guard** on all destructive/local-only targets prevents accidentally running `cluster-up` or `deploy` against a production AKS cluster
-- **Skaffold** is the deployment tool for local Kind clusters (via `deploy-local.sh` and `e2e-deploy`)
-- **Scripts are owned by other skills** — `setup-helm` creates `cluster-db.sh`, `deploy-local.sh`, `cluster-deps.sh`; `setup-playwright` creates `e2e-web.sh`
+- **Tilt** is the development/deployment tool for local Kind clusters — `deploy` runs `tilt up` (interactive), `e2e-deploy` runs `tilt ci` (headless)
+- **cloud-provider-kind** runs alongside Kind to enable LoadBalancer services locally — started by `cluster-up`
+- **Scripts are owned by other skills** — `setup-helm` creates `cluster-db.sh`, `cluster-deps.sh`; `setup-playwright` creates `e2e-web.sh`
 - **E2E targets** are split: `e2e` runs Go E2E tests, `e2e-web` runs Playwright with dev server, `e2e-web-integration` runs Playwright against a live cluster
