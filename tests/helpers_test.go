@@ -23,9 +23,16 @@ func forgePluginDir(t *testing.T) string {
 }
 
 func runClaude(t *testing.T, dir string, prompt string) string {
+	return runClaudeWithModel(t, dir, prompt, "")
+}
+
+func runClaudeWithModel(t *testing.T, dir string, prompt string, modelOverride string) string {
 	t.Helper()
 	pluginDir := forgePluginDir(t)
-	model := os.Getenv("FORGE_TEST_MODEL")
+	model := modelOverride
+	if model == "" {
+		model = os.Getenv("FORGE_TEST_MODEL")
+	}
 	if model == "" {
 		model = "claude-haiku-4-5-20251001"
 	}

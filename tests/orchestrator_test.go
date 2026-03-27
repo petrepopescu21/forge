@@ -11,7 +11,7 @@ func TestBootstrapProject(t *testing.T) {
 	skipIfNoAPI(t)
 	dir := t.TempDir()
 
-	runClaude(t, dir, "use forge:bootstrap-project with name testapp, module github.com/test/testapp, description 'a test project', all layers yes")
+	runClaudeWithModel(t, dir, "use forge:bootstrap-project with name testapp, module github.com/test/testapp, description 'a test project', all layers yes", "claude-sonnet-4-6")
 
 	assertFileExists(t, dir, "go.mod")
 	assertFileContains(t, dir, "go.mod", "module github.com/test/testapp")
