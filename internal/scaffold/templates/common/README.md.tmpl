@@ -1,0 +1,83 @@
+# {{.Name}}
+
+{{.Description}}
+
+## Quick Start
+
+### Prerequisites
+
+- Go 1.22+
+- Bun 1.1+
+- Docker (optional, for containerized builds)
+- kubectl + Kind (optional, for local K8s development)
+
+### Development
+
+Clone the repository:
+
+```bash
+git clone {{.Module}}.git
+cd {{.Name}}
+```
+
+Install dependencies and start development servers:
+
+```bash
+# Backend API (http://localhost:8080)
+make dev-api
+
+# Frontend (http://localhost:5174)
+make dev-web
+```
+
+Run quality gates:
+
+```bash
+make lint       # Linters
+make typecheck  # TypeScript
+make test       # Unit + integration tests
+```
+
+Run E2E tests:
+
+```bash
+make e2e-web              # Playwright tests
+make e2e-web-integration  # Web + API integration
+```
+
+### Production Deployment
+
+Build and deploy to AKS using Helm:
+
+```bash
+make build
+docker build -t {{.Name}}:latest .
+docker push {{.Name}}:latest
+
+helm upgrade --install {{.Name}} ./deploy/helm/{{.Name}} \
+  --namespace default \
+  --create-namespace
+```
+
+## Architecture
+
+See [CLAUDE.md](./CLAUDE.md) for:
+
+- Project conventions (Go, TypeScript, Kubernetes)
+- Development practices (TDD, BDD, Makefile)
+- Database and auth architecture
+- RBAC and security model
+- Helm and deployment strategy
+
+## Contributing
+
+1. Write BDD scenarios first (`.feature` files)
+2. Implement with TDD (red/green/refactor)
+3. Ensure all quality gates pass
+4. Commit with clear messages (one feature per commit)
+
+See CLAUDE.md for full development workflow.
+
+## License
+
+[Add your license here]

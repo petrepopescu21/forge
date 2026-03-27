@@ -1,0 +1,178 @@
+# {{.Name}} — Claude Code Project Context
+
+{{.Description}}
+
+## Product
+
+- **Domain:** TODO
+- **Users:** TODO
+
+## Required Plugin: forge
+
+This project uses the **forge** plugin for Claude Code. All developers must have the plugin installed and enabled. Key skills:
+- `forge:add-feature` — Start every feature with this skill
+- `forge:tdd-cycle` — Implement every feature using TDD
+- `forge:quality-check` — Run before every commit
+
+## Mandatory Workflows
+
+**EVERY feature follows this workflow:**
+
+1. **`forge:add-feature`** — Specify what to build, get a plan, create the branch
+2. **`forge:tdd-cycle`** — Red/Green/Refactor loop for each test/implementation pair
+3. **`forge:quality-check`** — Lint, typecheck, test, verify everything passes
+4. **Create pull request** — Link to feature plan, request review
+
+No code should be written without starting with `forge:add-feature`. No implementation without `forge:tdd-cycle`. No commit without `forge:quality-check`.
+
+## Architecture
+{{if .HasLayer "go-module"}}
+### Backend
+
+- **Language:** Go
+- **Package manager:** Go modules
+- **REST API:** Clean, versioned at `/api/v1/...`
+- **Database:** TODO
+- **Auth:** TODO
+- **Secrets:** TODO
+
+Directory structure:
+- `cmd/` — Executable binaries (main packages)
+- `internal/` — Non-exported packages (API handlers, business logic, repositories)
+{{end}}{{if .HasLayer "react"}}
+### Frontend
+
+- **Language:** TypeScript (strict mode)
+- **Framework:** React with functional components and hooks
+- **Bundler:** Vite
+- **Package manager:** Bun — use `bun install`, `bun run`. Never npm or yarn.
+- **Server state:** TanStack Query (`@tanstack/react-query`)
+- **Data grids:** TanStack Table (`@tanstack/react-table`)
+
+Directory structure:
+- `web/src/components/` — React `.tsx` components
+- `web/src/hooks/` — Custom React hooks
+- `web/src/pages/` — Page-level components
+
+TypeScript config: `"strict": true` enforced. No implicit `any`.
+{{end}}{{if .HasLayer "bdd"}}
+### Testing
+
+- **Backend:** godog (Go BDD framework)
+- **Frontend:** Playwright + playwright-bdd
+- **Feature files:** `features/` directory (`.feature` files in Gherkin)
+- **Step definitions:** `internal/*_test.go` (backend) or `web/e2e/steps/` (frontend)
+{{end}}{{if .HasLayer "helm"}}
+### Infrastructure
+
+- **Deployment:** Kubernetes (AKS production, Kind local)
+- **Package:** Helm
+- **Configuration:** ExternalSecrets for production, ConfigMaps for local
+
+Directory structure:
+- `deploy/helm/` — Helm chart
+- `deploy/kind/` — Kind cluster configuration
+- `scripts/` — Deployment and utility scripts
+{{end}}
+## Development Practices
+
+### TDD (Test-Driven Development)
+
+Write tests before or alongside implementation. Every feature uses the red/green/refactor cycle:
+
+1. **Red:** Write a failing test
+2. **Green:** Write minimal code to pass the test
+3. **Refactor:** Improve code quality without changing behavior
+
+Do not merge untested code.
+{{if .HasLayer "bdd"}}
+### BDD (Behavior-Driven Development)
+
+Features are written in Gherkin (`.feature` files) before implementation. Each feature describes the acceptance criteria using business language. Developers implement step definitions to satisfy the feature scenarios.
+{{end}}
+### Makefile Convention
+
+CI/CD pipelines call **Makefile targets only**. Follow these rules:
+
+- Simple, single-command targets belong directly in the `Makefile` — do not create a shell script just to wrap one line.
+- Multi-step or complex logic (more than ~2 commands) must be extracted into a script under `scripts/`, then called from the Makefile target.
+- Never inline multi-step logic directly in a `Makefile` recipe — extract it.
+
+### Quality Gates (Run Before Every Commit)
+
+All three gates must pass before committing:
+
+```bash
+make lint       # Linting (golangci-lint, eslint, etc.)
+make typecheck  # TypeScript type checking (tsc --noEmit)
+make test       # Unit and integration tests
+```
+
+### Languages
+
+- **Go** for all backend code
+- **TypeScript** for all frontend code
+- No other languages without explicit decision
+
+### Secrets Handling
+
+- Never commit secrets to version control
+- Use environment variables for local development (optional)
+- Use ExternalSecrets / managed identities in production
+- Audit secret usage regularly
+{{if .HasLayer "go-module"}}
+### Error Handling
+
+Errors are returned, not panicked. Always wrap errors with context:
+
+```go
+// Good
+return fmt.Errorf("doing X: %w", err)
+
+// Bad
+panic(err)
+return err // no context
+```
+{{end}}
+### Dependency Injection
+
+No global state. Pass all dependencies via constructors or function parameters.
+
+## Conventions
+{{if .HasLayer "go-module"}}
+### Go
+
+- Standard library preferred; minimize third-party dependencies
+- Errors returned, not panicked
+- `internal/` for non-exported packages
+- HTTP handlers thin — business logic in service layer
+- Context threading: always pass `context.Context` as first arg
+- **Error wrapping:** Use `fmt.Errorf("doing X: %w", err)` — always wrap with context describing the operation
+- **Dependency injection:** No global state; pass all dependencies via constructors (e.g., `NewService(db, cache)`)
+{{end}}{{if .HasLayer "react"}}
+### TypeScript / React
+
+- **Strict mode:** `"strict": true` in tsconfig; no implicit `any`
+- **Functional components only** — no class components
+- **Hooks:** Use React hooks for state, side effects, and context
+- **Server state:** All API data fetching via TanStack Query hooks (never ad-hoc `fetch` calls)
+- **Component files:** `.tsx` extension for all React components
+- **File structure:** One component per file; collocate styles and tests
+- **No global state managers:** Use React Context or TanStack Query cache
+- **Type safety:** Export types explicitly; use discriminated unions for state machines
+{{end}}
+### API Design
+
+- **Versioning:** All endpoints under `/api/v1/...` — increment on breaking changes
+- **Error responses:** Structured JSON: `{"error": {"code": "ERROR_CODE", "message": "human readable"}}`
+- **Pagination:** List endpoints support `?page=1&limit=50` with consistent response shape
+- **Filtering:** Collection routes support filtering, e.g., `?status=active&assignee=alice`
+
+## What Claude Should Know
+
+- Always run `forge:add-feature` before implementing any new feature
+- Every implementation must use `forge:tdd-cycle` (red/green/refactor)
+- Before committing, run `forge:quality-check` to verify all gates pass
+- This project has a Makefile — always check available targets before suggesting build commands
+- Do not create new languages or frameworks without explicit decision in this file
+- If you encounter violations of these conventions (e.g., untested code, missing error wrapping, implicit `any`), flag them immediately

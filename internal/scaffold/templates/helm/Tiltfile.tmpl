@@ -1,0 +1,28 @@
+# Tiltfile — local development with Kind
+# Run: tilt up (interactive) or tilt ci (headless/CI)
+
+# Build the Go + React app
+docker_build(
+    '{{.Name}}',
+    '.',
+    dockerfile='Dockerfile',
+    live_update=[
+        sync('./cmd', '/app/cmd'),
+        sync('./internal', '/app/internal'),
+        sync('./web/src', '/app/web/src'),
+    ],
+)
+
+# Deploy via Helm chart
+k8s_yaml(helm(
+    'deploy/helm/{{.Name}}',
+    name='{{.Name}}',
+    values=['deploy/helm/{{.Name}}/values.yaml'],
+    set=[
+        'image.repository={{.Name}}',
+        'image.tag=latest',
+    ],
+))
+
+# Port-forward the app
+k8s_resource('{{.Name}}', port_forwards='8080:8080')

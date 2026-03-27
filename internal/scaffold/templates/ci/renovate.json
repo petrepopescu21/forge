@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":automergeMinor", ":automergeDigest"],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod", "npm", "github-actions"],
+      "automerge": true,
+      "matchUpdateTypes": ["minor", "patch", "digest"]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^Makefile$"],
+      "matchStrings": [
+        "\\s*:=\\s*v?(?<currentValue>[\\d.]+)\\s+#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)"
+      ],
+      "versioningTemplate": "semver"
+    }
+  ]
+}

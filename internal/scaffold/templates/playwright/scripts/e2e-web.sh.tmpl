@@ -1,0 +1,60 @@
+#!/bin/bash
+set -euo pipefail
+
+# Configuration
+E2E_NAMESPACE="${E2E_NAMESPACE:-default}"
+E2E_SERVICE="${E2E_SERVICE:-{{.Name}}-api}"
+E2E_SERVICE_PORT="${E2E_SERVICE_PORT:-8080}"
+E2E_WAIT_TIMEOUT="${E2E_WAIT_TIMEOUT:-30}"
+
+# Find a free port
+find_free_port() {
+  local port=9000
+  while netstat -ln 2>/dev/null | grep -q ":$port "; do
+    ((port++))
+  done
+  echo $port
+}
+
+FREE_PORT=$(find_free_port)
+LOCAL_URL="http://localhost:$FREE_PORT"
+
+echo "Setting up port-forward from $E2E_SERVICE:$E2E_SERVICE_PORT to localhost:$FREE_PORT..."
+
+# Start port-forward in background
+kubectl port-forward \
+  -n "$E2E_NAMESPACE" \
+  "svc/$E2E_SERVICE" \
+  "$FREE_PORT:$E2E_SERVICE_PORT" &
+
+PF_PID=$!
+
+# Cleanup trap
+cleanup() {
+  echo "Cleaning up port-forward (PID: $PF_PID)..."
+  kill $PF_PID 2>/dev/null || true
+  wait $PF_PID 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Wait for service to be ready
+echo "Waiting for $LOCAL_URL/healthz (timeout: ${E2E_WAIT_TIMEOUT}s)..."
+ELAPSED=0
+while [ $ELAPSED -lt $E2E_WAIT_TIMEOUT ]; do
+  if curl -sf "$LOCAL_URL/healthz" >/dev/null 2>&1; then
+    echo "Service is ready!"
+    break
+  fi
+  sleep 1
+  ((ELAPSED++))
+done
+
+if [ $ELAPSED -ge $E2E_WAIT_TIMEOUT ]; then
+  echo "ERROR: Service did not become ready within ${E2E_WAIT_TIMEOUT}s"
+  exit 1
+fi
+
+# Run Playwright integration tests
+echo "Running Playwright integration E2E tests..."
+cd "$(dirname "$0")/../web"
+E2E_BASE_URL="$LOCAL_URL" bunx playwright test -c playwright-integration.config.ts "$@"

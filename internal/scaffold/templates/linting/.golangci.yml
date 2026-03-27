@@ -1,0 +1,70 @@
+version: "2"
+
+go: "1.24"
+
+linters:
+  default: none
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+    - gocritic
+    - revive
+    - tparallel
+    - paralleltest
+
+issues:
+  exclude-dirs:
+    - web/node_modules
+    - test/e2e
+
+linters-settings:
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam
+
+  revive:
+    enable-all-rules: false
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: defer
+      - name: dot-imports
+      - name: early-return
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: interface-naming
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: superfluous-else
+      - name: time-naming
+      - name: unexported-return
+      - name: unhandled-error
+      - name: unnecessary-stmt
+      - name: var-declaration
+      - name: var-naming
+      - name: void-in-defer
+
+output:
+  formats:
+    - format: colored-line-number
+  sort-results: true
+  sort-order:
+    - linter
+    - severity
+    - file

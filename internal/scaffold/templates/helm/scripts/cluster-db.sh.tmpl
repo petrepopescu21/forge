@@ -1,0 +1,168 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Defaults
+NAMESPACE="${1:-default}"
+ACTION="${2:-up}"
+
+DB_NAMESPACE="db"
+APP_NAMESPACE="${NAMESPACE}"
+PG_VERSION="16"
+PG_PASSWORD="postgres"
+DB_NAME="{{.Name}}"
+DB_USER="{{.Name}}"
+DB_PASSWORD="{{.Name}}-local"
+JWT_SECRET="jwt-secret-local-dev-only"
+DB_HOST="postgres.${DB_NAMESPACE}.svc.cluster.local"
+DB_PORT="5432"
+
+echo "Cluster DB Manager"
+echo "=================="
+echo "Namespace: ${APP_NAMESPACE}"
+echo "Action: ${ACTION}"
+echo ""
+
+case "${ACTION}" in
+  up)
+    echo "Creating DB namespace..."
+    kubectl create namespace "${DB_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+
+    echo "Creating PostgreSQL deployment..."
+    kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+  namespace: ${DB_NAMESPACE}
+data:
+  init.sql: |
+    CREATE ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASSWORD}';
+    CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};
+    ALTER ROLE ${DB_USER} CREATEDB;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: ${DB_NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:${PG_VERSION}
+        ports:
+        - containerPort: ${DB_PORT}
+        env:
+        - name: POSTGRES_PASSWORD
+          value: ${PG_PASSWORD}
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U postgres
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U postgres
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}
+      - name: init-scripts
+        configMap:
+          name: postgres-initdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: ${DB_NAMESPACE}
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: ${DB_PORT}
+    targetPort: ${DB_PORT}
+  clusterIP: None
+EOF
+
+    echo "Waiting for PostgreSQL to be ready..."
+    kubectl rollout status deployment/postgres -n "${DB_NAMESPACE}" --timeout=60s
+
+    echo "Creating app namespace..."
+    kubectl create namespace "${APP_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+
+    echo "Creating secrets in app namespace..."
+    DB_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    DB_DSN="${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+    kubectl create secret generic db-credentials \
+      --from-literal=db-dsn="${DB_DSN}" \
+      --from-literal=db-url="${DB_URL}" \
+      --from-literal=db-password="${DB_PASSWORD}" \
+      --from-literal=jwt-secret="${JWT_SECRET}" \
+      -n "${APP_NAMESPACE}" \
+      --dry-run=client -o yaml | kubectl apply -f -
+
+    echo "PostgreSQL cluster is ready!"
+    echo "Database: ${DB_NAME}"
+    echo "User: ${DB_USER}"
+    echo "Host: ${DB_HOST}:${DB_PORT}"
+    ;;
+
+  stop)
+    echo "Stopping PostgreSQL deployment..."
+    kubectl scale deployment/postgres -n "${DB_NAMESPACE}" --replicas=0
+    echo "PostgreSQL scaled down."
+    ;;
+
+  reset)
+    echo "Deleting PostgreSQL deployment and data..."
+    kubectl delete deployment postgres -n "${DB_NAMESPACE}" --ignore-not-found=true
+    kubectl delete configmap postgres-initdb -n "${DB_NAMESPACE}" --ignore-not-found=true
+    kubectl delete service postgres -n "${DB_NAMESPACE}" --ignore-not-found=true
+    echo "PostgreSQL reset complete."
+    ;;
+
+  *)
+    echo "Usage: $0 [namespace] {up|stop|reset}"
+    echo ""
+    echo "Actions:"
+    echo "  up     - Create PostgreSQL deployment and secrets (default)"
+    echo "  stop   - Scale down PostgreSQL"
+    echo "  reset  - Delete PostgreSQL and all data"
+    exit 1
+    ;;
+esac

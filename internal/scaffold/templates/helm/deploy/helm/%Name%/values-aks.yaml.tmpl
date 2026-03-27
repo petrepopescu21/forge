@@ -1,0 +1,52 @@
+# AKS production overrides
+replicaCount: 3
+
+image:
+  repository: {{.Name}}.azurecr.io/{{.Name}}
+  tag: "latest"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: {{.Name}}.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: {{.Name}}-tls
+      hosts:
+        - {{.Name}}.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - {{.Name}}
+          topologyKey: kubernetes.io/hostname
