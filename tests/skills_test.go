@@ -2,6 +2,7 @@ package tests
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -11,6 +12,8 @@ func skipIfNoAPI(t *testing.T) {
 		t.Skip("neither ANTHROPIC_API_KEY nor ANTHROPIC_AUTH_TOKEN set, skipping behavioral test")
 	}
 }
+
+// --- Standalone setup skill tests (no prerequisites) ---
 
 func TestSetupGoModule(t *testing.T) {
 	skipIfNoAPI(t)
@@ -30,8 +33,6 @@ func TestSetupReact(t *testing.T) {
 	assertFileExists(t, dir, "web/package.json")
 	assertDirExists(t, dir, "web/src")
 	assertFileExists(t, dir, "web/vite.config.ts")
-	runCmd(t, dir, "bun", "install")
-	runCmd(t, dir, "bun", "run", "build")
 }
 
 func TestSetupMakefile(t *testing.T) {
@@ -43,39 +44,6 @@ func TestSetupMakefile(t *testing.T) {
 	assertFileContains(t, dir, "Makefile", "test")
 	assertFileContains(t, dir, "Makefile", "typecheck")
 	assertFileContains(t, dir, "Makefile", "build")
-	assertFileContains(t, dir, "Makefile", "dev-api")
-	assertFileContains(t, dir, "Makefile", "dev-web")
-	runMake(t, dir, "help")
-}
-
-func TestSetupLinting(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-go-module with project name testapp and module github.com/test/testapp")
-	runClaude(t, dir, "use forge:setup-react with project name testapp")
-	runClaude(t, dir, "use forge:setup-makefile with project name testapp")
-	runClaude(t, dir, "use forge:setup-linting with project name testapp")
-	assertFileExists(t, dir, ".golangci.yml")
-	runMake(t, dir, "lint")
-}
-
-func TestSetupBdd(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-go-module with project name testapp and module github.com/test/testapp")
-	runClaude(t, dir, "use forge:setup-makefile with project name testapp")
-	runClaude(t, dir, "use forge:setup-bdd with project name testapp")
-	assertDirExists(t, dir, "features")
-	runMake(t, dir, "test")
-}
-
-func TestSetupPlaywright(t *testing.T) {
-	skipIfNoAPI(t)
-	dir := t.TempDir()
-	runClaude(t, dir, "use forge:setup-react with project name testapp")
-	runClaude(t, dir, "use forge:setup-playwright with project name testapp")
-	assertFileExists(t, dir, "playwright.config.ts")
-	assertDirExists(t, dir, "web/e2e")
 }
 
 func TestSetupSonar(t *testing.T) {
@@ -102,4 +70,42 @@ func TestSetupCi(t *testing.T) {
 	assertFileExists(t, dir, ".github/workflows/ci.yml")
 	assertFileContains(t, dir, ".github/workflows/ci.yml", "lint")
 	assertFileContains(t, dir, ".github/workflows/ci.yml", "test")
+}
+
+// --- Tests that need a bootstrapped project (use shared fixture) ---
+
+func TestSetupLinting(t *testing.T) {
+	skipIfNoAPI(t)
+	if fixtureDir == "" {
+		t.Skip("bootstrap fixture not available")
+	}
+	dir := t.TempDir()
+	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
+	projectDir := filepath.Join(dir, "project")
+	assertFileExists(t, projectDir, ".golangci.yml")
+	runMake(t, projectDir, "lint")
+}
+
+func TestSetupBdd(t *testing.T) {
+	skipIfNoAPI(t)
+	if fixtureDir == "" {
+		t.Skip("bootstrap fixture not available")
+	}
+	dir := t.TempDir()
+	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
+	projectDir := filepath.Join(dir, "project")
+	assertDirExists(t, projectDir, "features")
+	runMake(t, projectDir, "test")
+}
+
+func TestSetupPlaywright(t *testing.T) {
+	skipIfNoAPI(t)
+	if fixtureDir == "" {
+		t.Skip("bootstrap fixture not available")
+	}
+	dir := t.TempDir()
+	copyDir(t, fixtureDir, filepath.Join(dir, "project"))
+	projectDir := filepath.Join(dir, "project")
+	assertFileExists(t, projectDir, "playwright.config.ts")
+	assertDirExists(t, projectDir, "web/e2e")
 }

@@ -24,11 +24,8 @@ func TestSetupCiValidation(t *testing.T) {
 
 	dir := t.TempDir()
 
-	runClaude(t, dir, "use forge:setup-go-module with project name testapp and module github.com/test/testapp")
-	runClaude(t, dir, "use forge:setup-react with project name testapp")
-	runClaude(t, dir, "use forge:setup-makefile with project name testapp")
-	runClaude(t, dir, "use forge:setup-linting with project name testapp")
-	runClaude(t, dir, "use forge:setup-ci with project name testapp")
+	// Use bootstrap-project to get a complete project with CI in one session
+	runClaude(t, dir, "use forge:bootstrap-project with name testapp, module github.com/test/testapp, description 'a test project', all layers yes")
 
 	assertFileExists(t, dir, ".github/workflows/ci.yml")
 	assertFileContains(t, dir, ".github/workflows/ci.yml", "lint")
