@@ -10,9 +10,26 @@ import (
 )
 
 // runClaude invokes the Claude Code CLI in print mode against the given directory.
+// forgePluginDir returns the absolute path to the forge repo root.
+// This is needed so Claude can find forge skills when running in temp dirs.
+func forgePluginDir(t *testing.T) string {
+	t.Helper()
+	// tests/ is one level below repo root
+	abs, err := filepath.Abs(filepath.Join("..", "."))
+	if err != nil {
+		t.Fatalf("failed to resolve forge plugin dir: %v", err)
+	}
+	return abs
+}
+
 func runClaude(t *testing.T, dir string, prompt string) string {
 	t.Helper()
-	cmd := exec.Command("claude", "--print", "--allowedTools", "*", "--", prompt)
+	pluginDir := forgePluginDir(t)
+	model := os.Getenv("FORGE_TEST_MODEL")
+	if model == "" {
+		model = "claude-haiku-4-5-20251001"
+	}
+	cmd := exec.Command("claude", "--print", "--dangerously-skip-permissions", "--model", model, "--plugin-dir", pluginDir, "--", prompt)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {

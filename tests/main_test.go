@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 )
 
@@ -18,7 +19,12 @@ func TestMain(m *testing.M) {
 		}
 		defer os.RemoveAll(dir)
 
-		cmd := exec.Command("claude", "--print", "--allowedTools", "*", "--",
+		pluginDir, _ := filepath.Abs(filepath.Join("..", "."))
+		model := os.Getenv("FORGE_TEST_MODEL")
+		if model == "" {
+			model = "claude-haiku-4-5-20251001"
+		}
+		cmd := exec.Command("claude", "--print", "--dangerously-skip-permissions", "--model", model, "--plugin-dir", pluginDir, "--",
 			"use forge:bootstrap-project with name testapp, module github.com/test/testapp, description 'a test project', all layers yes")
 		cmd.Dir = dir
 		out, err := cmd.CombinedOutput()
