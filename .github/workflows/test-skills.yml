@@ -99,11 +99,13 @@ jobs:
           fi
 
       - name: Run behavioral tests
+        id: tests
         if: steps.affected.outputs.skip != 'true'
         env:
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
           FORGE_TEST_GITHUB_TOKEN: ${{ secrets.FORGE_TEST_GITHUB_TOKEN }}
         run: |
+          set -o pipefail
           go test ./tests/ -run '${{ steps.affected.outputs.pattern }}' -v -timeout 30m 2>&1 | tee test-output.txt
 
       - name: Post results
