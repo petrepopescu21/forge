@@ -1,0 +1,22 @@
+{
+  "name": "forge",
+  "version": "0.1.0",
+  "description": "Opinionated development workflows for Go + React/TypeScript projects — BDD, TDD, CI/CD, quality gates",
+  "skills": [
+    "skills/bootstrap-project",
+    "skills/setup-go-module",
+    "skills/setup-react",
+    "skills/setup-makefile",
+    "skills/setup-ci",
+    "skills/setup-linting",
+    "skills/setup-bdd",
+    "skills/setup-playwright",
+    "skills/setup-sonar",
+    "skills/setup-helm",
+    "skills/generate-claude-md",
+    "skills/add-feature",
+    "skills/bdd-feature",
+    "skills/tdd-cycle",
+    "skills/quality-check"
+  ]
+}
