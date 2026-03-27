@@ -4,10 +4,11 @@ A Claude Code plugin for bootstrapping and developing Go + React/TypeScript proj
 
 ## Installation
 
-Install from the Claude Code marketplace:
+Add the marketplace and install the plugin from within Claude Code:
 
-```bash
-claude install petrepopescu21/forge
+```
+/plugin marketplace add petrepopescu21/forge
+/plugin install forge
 ```
 
 ## Commands
