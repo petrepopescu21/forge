@@ -1,0 +1,20 @@
+# SonarCloud Project Configuration
+sonar.projectKey=FIXME-ORG_{{.Name}}
+sonar.organization=FIXME-ORG
+sonar.projectName={{.Name}}
+sonar.projectVersion=1.0
+
+# Source and Test Directories
+sonar.sources=cmd,internal,web/src
+sonar.tests=internal,web/src
+sonar.test.inclusions=**/*_test.go,**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx
+
+# Exclusions
+sonar.exclusions=**/node_modules/**,**/dist/**,**/vendor/**,**/*.gen.go
+
+# Coverage Reports
+sonar.go.coverage.reportPath=coverage.out
+sonar.typescript.lcov.reportPaths=web/coverage/lcov.info
+
+# Encoding
+sonar.sourceEncoding=UTF-8

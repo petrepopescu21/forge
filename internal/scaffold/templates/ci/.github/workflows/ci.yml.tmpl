@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+
+concurrency:
+  group: ${{ "{{" }} github.workflow {{ "}}" }}-${{ "{{" }} github.ref {{ "}}" }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install frontend dependencies
+        run: cd web && bun install --frozen-lockfile
+
+      - name: Lint (Go + frontend)
+        run: make lint
+
+      - name: Lint Helm charts
+        run: make helm-lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Run Go tests with coverage
+        run: go test -coverprofile=coverage.out ./...
+
+      - name: Install frontend dependencies
+        run: cd web && bun install --frozen-lockfile
+
+      - name: Run frontend tests with coverage
+        run: cd web && bun run test -- --coverage
+
+      - name: TypeScript type check
+        run: cd web && bun run typecheck
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage.out
+            web/coverage
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Create Kind cluster
+        run: make e2e-cluster
+
+      - name: Setup test database
+        run: make e2e-db
+
+      - name: Deploy services
+        run: make e2e-deploy
+
+      - name: Run backend E2E tests
+        run: make e2e
+
+      - name: Install Playwright
+        run: cd web && bun install --frozen-lockfile && bun add -d @playwright/test
+
+      - name: Run frontend E2E tests
+        run: cd web && make e2e-web-integration
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== Kind Cluster Status ==="
+          kubectl get nodes
+          kubectl get pods --all-namespaces
+          kubectl logs -n {{.Name}} --all-containers=true --tail=50
+
+  sonar:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-reports
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          GITHUB_TOKEN: ${{ "{{" }} secrets.GITHUB_TOKEN {{ "}}" }}
+          SONAR_TOKEN: ${{ "{{" }} secrets.SONAR_TOKEN {{ "}}" }}
